@@ -47,6 +47,64 @@ class BasePage(object):
     #     # empty result
     #     warnings.warn("Couldn't get focused app", stacklevel=2)
     #     return dict(package=None, activity=None)
+
+    @classmethod
+    def local_install(cls, apk_path):
+        '''
+        安装本地apk 覆盖安装，不需要usb链接
+        :param apk_path: apk文件本地路径
+        '''
+        file_name = os.path.basename(apk_path)
+        dst = '/sdcard/' + file_name
+        print('start to install %s' % file_name)
+        cls.d.push(apk_path, dst)
+        print('start install %s' % dst)
+        if cls.d.device_info['brand'] == 'vivo':
+            '''Vivo 手机通过打开文件管理 安装app'''
+            cls.d.app_stop('com.android.filemanager')
+            cls.d.app_start('com.android.filemanager')
+            cls.d(resourceId="com.android.filemanager:id/disk_info_parent").click()
+            cls.d(scrollable=True, resourceId="com.android.filemanager:id/file_listView").scroll.toEnd()
+            time.sleep(0.5)
+            print(file_name)
+            cls.d(className="android.widget.LinearLayout").child(text=file_name).click()
+            cls.d(resourceId="com.android.packageinstaller:id/continue_button").click()
+            cls.d(resourceId="com.android.packageinstaller:id/ok_button").click()
+            print(cls.d(resourceId="com.android.packageinstaller:id/checked_result").get_text())
+
+        elif cls.d.device_info['brand'] == 'OPPO':
+            cls.d.app_stop('com.coloros.filemanager')
+            cls.d.app_start('com.coloros.filemanager')
+            cls.d(resourceId="com.coloros.filemanager:id/action_file_browser").click()
+            cls.d(className="android.app.ActionBar$Tab", instance=1).click()
+            cls.d(scrollable=True, resourceId="com.coloros.filemanager:id/viewPager").scroll.toEnd()
+            time.sleep(0.5)
+            cls.d(className="android.widget.LinearLayout").child(text=file_name).click()
+            time.sleep(5)
+            if cls.d(resourceId="com.android.packageinstaller:id/btn_continue_install_old").exists:
+                cls.d(resourceId="com.android.packageinstaller:id/btn_continue_install_old").click()
+
+            elif cls.d(resourceId="android:id/button1", text=u"重新安装").exists:
+                cls.d(resourceId="android:id/button1", text=u"重新安装").click()
+            elif cls.d(resourceId="android:id/button2", text=u"知道了").exists:
+                raise Exception('以安装高版本，请卸载重装')
+            else:
+                pass
+            cls.d(resourceId="com.android.packageinstaller:id/bottom_button_layout").wait()
+            rect = cls.d(resourceId="com.android.packageinstaller:id/bottom_button_layout").info['bounds']
+            x = rect['right'] / 2
+            y = rect['top'] + (rect['bottom'] - rect['top']) / 4
+            cls.d.click(x, y)
+            print(cls.d(resourceId="com.android.packageinstaller:id/done_button").get_text())
+
+        else:
+            cls.watch_device(['允许', '继续安装', '允许安装', '始终允许', '安装', '重新安装'])
+            cls.d.shell(['pm', 'install', '-r', dst], stream=True)
+            # id = r.text.strip()
+            # print(time.strftime('%H:%M:%S'), id)
+            cls.unwatch_device()
+        cls.d.shell(['rm', dst])
+
     @classmethod
     def unlock_device(cls):
         '''unlock.apk install and launch'''
@@ -63,8 +121,16 @@ class BasePage(object):
 
     @classmethod
     def back(cls):
-        '''点击返回'''
+        '''点击返回
+        页面没有加载完的时候，会出现返回失败的情况，使用前确认页面加载完成'''
+        time.sleep(1)
         cls.d.press('back')
+        time.sleep(1)
+
+
+    @classmethod
+    def identify(cls):
+        cls.d.open_identify()
 
     def set_chromedriver(self, device_ip=None, package=None, activity=None, process=None):
         driver = ChromeDriver(self.d, Ports().get_ports(1)[0]). \
@@ -72,21 +138,28 @@ class BasePage(object):
         return driver
 
     @classmethod
-    def watch_device(cls):
-        '''wacther devices 如果存在元素则自动点击'''
+    def watch_device(cls, watch_list):
+        '''
+        如果存在元素则自动点击
+        :param watch_list: exp: watch_list=['允许','yes','跳过']
+        '''
         cls.d.watchers.watched = False
-        cls.d.watcher("ALERT").when(text="yes").click(text="yes")
-        cls.d.watcher("允许").when(text="允许").click(text="允许")
+        for i in watch_list:
+            cls.d.watcher(i).when(text=i).click(text=i)
+            # cls.d.watcher("允许").when(text="允许").click(text="允许")
+        print('Starting watcher,parameter is %s' % watch_list)
         cls.d.watchers.watched = True
 
     @classmethod
     def unwatch_device(cls):
         '''关闭watcher '''
+        print('Stop all watcher')
         cls.d.watchers.watched = False
 
     @classmethod
     def get_toast_message(cls):
         message = cls.d.toast.get_message(3, 3)
+        cls.d.toast.reset()
         return message
 
     @classmethod

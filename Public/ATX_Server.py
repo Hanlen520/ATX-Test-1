@@ -175,44 +175,4 @@ class ATX_Server(object):
             return devices
         else:
             return False
-# def get_device_ip(devices):
-#     if devices:
-#         ip_list = []
-#         for i in devices:
-#             ip_list.append(i['ip'])
-#         return ip_list
-#     else:
-#         logger.error('There is no devices found')
-#         return False
 
-from Public.ReadConfig import ReadConfig
-import uiautomator2 as u2
-
-
-def get_devices():
-    '''get  devices from Pubilc/config.ini devices list'''
-    devices_ip = ReadConfig().get_devices()
-    print('Getting devices from config devices list %s' % devices_ip)
-    devices_list = []
-    for i in devices_ip:
-        device = u2.connect(i)
-        try:
-            if device.alive:
-                dict_tmp = device.device_info
-                dict_tmp['ip'] = i
-                devices_list.append(dict_tmp)
-            else:
-                print('The IP %s device is not alive,please checkout!' % i)
-        except Exception as e:
-            print('Raise ERR %s\nThe IP %s device is not alive,please checkout!' % (e, i))
-    return devices_list
-
-# if __name__ == '__main__':
-#     # # get device# s from atx-server
-#     # s = ATX_Server('http://10.0.34.75:8000/')
-#     # print(s.devices())
-#     # print(s.all_devices())
-#     # print(s.online_devices())
-#
-#     # get devices from config.ini devices list
-#     print(get_devices())

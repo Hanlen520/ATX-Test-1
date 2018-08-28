@@ -86,7 +86,7 @@ class ChromeDriver(object):
         # for i in pid:
         #     os.popen('taskkill /PID %d /F' % i)
 
-        # for mac
+        # # for mac
         pid = getPidByName('chromedriver')
         for i in pid:
             os.popen('kill -9 %d' % i)
