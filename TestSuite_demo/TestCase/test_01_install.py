@@ -8,6 +8,7 @@ from Public.Decorator import *
 from PageObject import LoginPage
 import unittest
 
+
 from Public.ReadConfig import ReadConfig
 apk_url = ReadConfig().get_apk_url()
 pkg_name = ReadConfig().get_pkg_name()
@@ -34,6 +35,7 @@ class apk_install(unittest.TestCase, BasePage):
         # self.d.app_install(apk_url)
         self.local_install(apk_path)
         self.d.app_start(pkg_name)
+
 
         time.sleep(3)
         LoginPage.LoginPage().wait_page()
